@@ -1,0 +1,45 @@
+<html>
+
+<body>
+
+<form action="/predict" method="Post">
+<input type="text" name="exp" placeholder="Yrs of Exp"/>
+<br />
+<input type="text" name="test" placeholder="test score" />
+<br />
+<input type="text" name="int" placeholder="Inte score"/>
+<br />
+<input type="submit" />
+</form>
+
+{{data}}
+</body>
+
+</html>
+
+
+
+
+from flask import Flask, request, \
+    render_template
+app = Flask(__name__)
+import pickle
+
+model = pickle.load(open('model.pkl','rb'))
+
+@app.route("/")
+def main():
+    return render_template("index.html")
+
+@app.route("/predict", methods=['post'])
+def pred():
+    features = [float(i) 
+                for i in 
+                (request.form.values())]
+    pred = model.predict([features])
+    pred = round(pred[0],2)
+    return render_template("success.html",
+                           data=pred)
+    
+if __name__=='__main__':
+    app.run(host='localhost',port=5000)

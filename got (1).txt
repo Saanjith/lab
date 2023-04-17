@@ -1,0 +1,1035 @@
+Parameter Tuning
+
+#decision_tree
+from sklearn.tree import DecisionTreeClassifier
+log=DecisionTreeClassifier()
+from sklearn.model_selection import GridSearchCV,RandomizedSearchCV
+parameter = {'max_depth':[5,6,7,4,8,1]}
+dTree_grid = GridSearchCV(log,param_grid = parameter,scoring='accuracy',cv=5)
+dTree_rand = RandomizedSearchCV(log,param_distributions = parameter,scoring='accuracy',cv=5)
+dTree_grid.fit(x,y)
+dTree_rand.fit(x,y)
+print(dTree_grid.best_params_)
+print(dTree_grid.best_score_)
+print(dTree_rand.best_params_)
+print(dTree_rand.best_score_)
+#KNN
+from sklearn.neighbors import KNeighborsClassifier
+kn=KNeighborsClassifier()
+parameter = {'n_neighbors':[1,12,4,11,8,10,7]}
+#Naive bayes
+from sklearn.naive_bayes import GaussianNB
+nb=GaussianNB()
+parameter = {'priors':[[0.55,0.45],[0.1,0.9],[0.3,0.7],[0.4,0.6]]}
+#logistic
+from sklearn.preprocessing import StandardScaler
+sc=StandardScaler()
+x=sc.fit_transform(x)
+from sklearn.linear_model import LogisticRegression
+lr=LogisticRegression()
+parameter={"penalty":["none","l1","l2","elasticnet"]}
+
+Logistic
+
+miss = data.columns[data.isnull().sum()>0]
+for i in data.select_dtypes(include=(object)):  
+    drop = False if i in miss else True     
+    data = data.join(pd.get_dummies(data[i],drop_first=drop,prefix=i))
+    data.drop(i,axis=1,inplace=True)
+
+from sklearn.model_selection import train_test_split
+x_train,x_test,y_train,y_test = train_test_split(x,y,test_size=0.3,random_state=0)
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+x_train[numerical] = sc.fit_transform(x_train[numerical])
+x_test[numerical] = sc.transform(x_test[numerical])
+x_train = x_train.values
+y_train = y_train.values
+x_test = x_test.values
+y_test = y_test.values
+from sklearn.linear_model import LogisticRegression
+lr = LogisticRegression()
+lr.fit(x_train,y_train)
+y_pred = lr.predict(x_test)
+from sklearn.metrics import confusion_matrix,accuracy_score,classification_report
+confusion_matrix(y_pred,y_test)
+accuracy_score(y_pred,y_test)
+
+gini
+
+def gini(a,X,i):
+    giniVal=[]
+    for c in range(0,len(a)-1):
+        avg = (a[c]+a[c+1])/2
+        df_less= X[X[i]<=avg]
+        df_more = X[X[i]>avg]
+        j = len(df_less[df_less['Purchased']==0])
+        k = len(df_more[df_more['Purchased']==0])
+        l = len(df_less[df_less['Purchased']==1])
+        m = len(df_more[df_more['Purchased']==1])
+        gini_left = 1 - ((j/len(df_less))**2 + (l/len(df_less))**2)
+        gini_right = 1 -((k/len(df_more))**2 + (m/len(df_more))**2)
+        infoGain = len(df_less)/len(X) * gini_left + len(df_more)/len(X)*gini_right
+        print(avg,':','left',':',gini_left,'right',':',gini_right)
+        print(avg,':',infoGain)
+
+def FindGini(df):
+    for columns in df.columns:
+        if(columns=='Purchased'):
+            break
+        col = np.array(df[columns].unique())
+        col.sort()
+        gini(col,df,columns)
+        
+FindGini(df)
+
+Linear
+
+from sklearn.datasets import load_boston
+import pandas as pd
+import numpy as np
+boston = load_boston()
+df=pd.DataFrame(data=boston.data,columns=boston.feature_names)
+x_train = np.array(x[:750])
+y_train = np.array(y[:750])
+#scratch
+x_mean = np.mean(x_train)
+y_mean = np.mean(y_train)
+m = sum((x_train-x_mean)*(y_train-y_mean))/sum((x_train-x_mean)**2)
+c = y_mean - (m * x_mean)
+plt.scatter(x_train,y_train)
+y_pred = x_train * m + c
+plt.plot(x_train,y_pred)
+y_predicted = x_test*m + c
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+mean_absolute_error(y_test,y_predicted)
+#gradient
+m=0
+c=0
+n=100
+alpha = 0.001
+for i in range(1000):
+    #print(m,c)
+    y_pred = (m*x_train)+c
+    dm = (-2/n)*sum(x_train*(y_train-y_pred))
+    dc = (-2/n)*sum(y_train-y_pred)
+    #print(dm,dc)
+    m = m -alpha*dm
+    c = c-alpha*dc
+print(m,c)
+
+Ensemble
+
+df['Multiple Lines'].fillna(df['Multiple Lines'].mode().iloc[0], inplace=True)
+for i in df.columns:
+    if(df[i].dtype=='object'):
+        df[i] = df[i].astype('category')
+        df[i] = df[i].cat.codes
+#bagging
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+x = df.iloc[:,:-1]
+y = df.iloc[:,-1]
+from sklearn.model_selection import train_test_split
+x_train,x_test,y_train,y_test = train_test_split(x,y,test_size=0.25)
+from sklearn.model_selection import GridSearchCV
+models = [lm.LogisticRegression(),KNeighborsClassifier(n_neighbors=7),GaussianNB(),tree.DecisionTreeClassifier(),RandomForestClassifier(max_depth=7, random_state=0)]
+def sampler(x,y):
+    z= np.random.choice(range(len(x)),int(len(x)/len(models)))
+    return x[z],y[z]
+for i in models:
+    x_sample, y_sample = sampler(x,y)
+    print(i)
+    print("Sample : ",len(x_sample))
+    x_train,x_test,y_train,y_test= train_test_split(x_sample,y_sample,test_size=0.2,random_state=0)
+    i.fit(x_train, y_train)
+    y_pred = i.predict(x_test)
+    print("accuracy : ",accuracy_score(y_test,y_pred))
+fitted=[]
+for i in models:
+    x_train,y_train = sampler(x,y)
+    i.fit(x_train, y_train)
+    fitted.append(i)
+z=[]
+for i in fitted:
+    y_pred = i.predict(x_test)
+    z.append(y_pred)
+z = np.array(z)
+from scipy import stats
+stats.mode(z)[0]
+
+Clustering
+
+from sklearn.cluster import KMeans  
+from sklearn.metrics import silhouette_score
+wcss= [] 
+silhouette=[]
+for i in range(2, 11):  
+    k_means = KMeans(i, random_state= 0)  
+    k_means.fit(x)  
+    wcss.append(k_means.inertia_)  
+    k_means.fit_predict(x)
+    score = silhouette_score(x, k_means.labels_, metric='euclidean')
+    silhouette.append(score)
+print('Silhouetter Score: %.3f' % score)
+plt.plot(range(2, 11), wcss)  
+plt.show()  
+plt.plot(range(2, 11), silhouette)  
+
+k_means=KMeans(4,random_state=0)
+k_means.fit(df)
+y=k_means.labels_
+
+import seaborn as sns
+from mpl_toolkits.mplot3d import Axes3D
+
+fig = plt.figure(figsize=(20,20))
+ax = fig.add_subplot(111, projection = '3d')
+for i in range(4):
+    ax.scatter(df.iloc[y==i,0],df.iloc[y==i,1],df.iloc[y==i,2])
+plt.show()
+
+import numpy as np
+from sklearn import datasets
+import random
+iris=datasets.load_iris()
+y=iris.data
+y=pd.DataFrame(y)
+y.iloc[:,[1,2,3]]
+WCSS = []
+for i in range(2,11):
+    km = KMeans(n_clusters = i,random_state=1)
+    km.fit(y)
+    WCSS.append(km.inertia_)
+fig = plt.figure(figsize = (7,7))
+plt.plot(range(2,11),WCSS,color = 'green')
+plt.xticks(np.arange(11))
+plt.show()
+km=KMeans(n_clusters=3,random_state=0)
+z=km.fit_predict(y) 
+z
+y=y.values
+fig = plt.figure(figsize = (15,15))
+ax = fig.add_subplot(111, projection='3d')
+for i in range(3):
+    ax.scatter(y[z==i,0],y[z==i,1],y[z==i,2])
+plt.show()
+
+PCA
+
+import numpy as np
+import pandas as pd
+import scipy.io
+import matplotlib.pyplot as plt
+import seaborn as sns
+data = scipy.io.loadmat(r"mnist-original.mat")
+X = data['data'].T
+Y = data['label'].T
+D = X.shape[1]
+Y = Y.flatten()
+X.shape,Y.shape
+sns.countplot(Y)
+X = (X-X.mean())/X.std()
+#scratch
+cov = X.T @ X
+w,v = np.linalg.eigh(cov)
+ind = np.argsort(-w)
+w = w[ind]
+v = v[:,ind]
+pc = v.T @ X.T
+pc = pc.T
+pc.shape
+plt.plot(range(D),pc.var(axis=0))
+
+#sklearn
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+principal=PCA()
+principal.fit(X)
+a=principal.transform(X)
+plt.plot(range(D),principal.explained_variance_ratio_)
+#dimenson
+var = pc.var(axis=0)
+var = var/sum(var)
+csum = np.cumsum(var)
+plt.plot(range(D),csum)
+sum(csum<=0.95)
+
+data = pc[:,csum<=0.95]
+data.shape
+
+Recomm
+
+import pandas as pd
+import numpy as np
+from scipy import sparse
+ratings = pd.read_csv(r"Netflix_Dataset_Rating.csv")
+ratings['User'] = ratings['User_ID'].astype('category').cat.codes
+ratings['Movie'] = ratings['Movie_ID'].astype('category').cat.codes
+ratings['Rating_rec'] = ratings['Rating'].transform( lambda x: x-3 if x!=0 else 0)
+ratings.head()
+mat = sparse.coo_matrix((ratings['Rating_rec'], (ratings['User'],ratings['Movie'])))
+mat_coo = mat.tocsr()
+#jaccard
+def jacsim(user):
+    row = mat_coo[user].toarray().flatten()
+    a = (row!=0).astype(int)
+    b = (mat_coo!=0).astype(int)
+    sim_users = a@b.T
+    
+    s1 = np.array(np.sum(b,axis=1)).flatten()
+    s2 = np.sum(a)
+
+    sim_users = sim_users/(s1 +s2 -sim_users)
+    ind = (-sim_users).argsort()
+    return ind
+	
+jacsim(75)[:10]
+
+#cossine
+def cossim(user):
+    col = mat_coo[user].toarray()[0]
+    
+    sim = col@mat_coo.T
+    a = np.array(np.sum(mat_coo.power(2),axis=1)).flatten()
+    b = np.sum(col**2)
+    
+    sim = sim/((a**0.5)*(b**0.5))
+    ind = (-sim).argsort()
+    
+    return ind
+	
+cossim(75)[:10]
+def recommend(user,number_of_movies=5):
+    u1 = jacsim(user)[1]
+    u2 = cossim(user)[1]
+    
+    col = mat_coo[user].toarray()[0]
+    a = mat_coo[u1].toarray()[0]
+    print("jaccard similarity",u1)
+    a = a*(col==0)
+    ind = (-a).argsort()
+    print(movies.iloc[ind[:5]])
+    
+    b = mat_coo[u2].toarray()[0]
+    print("cosine similarity",u2)
+    b = b*(col==0)
+    ind = (-b).argsort()
+    print(movies.iloc[ind[:5]])
+
+recommend(76)
+#movie seen
+a = mat_coo[69].toarray()[0]
+ind = (-a).argsort()
+movies.iloc[ind[:20]]
+
+Pytorch and Keras
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split as tts
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import confusion_matrix,classification_report,log_loss
+import copy
+xtr,xtst,ytr,ytst = tts(X,Y,test_size=0.25,stratify=Y,random_state=42)
+xtr.shape,xtst.shape,ytr.shape,ytst.shape
+sc = StandardScaler()
+xtr = sc.fit_transform(xtr)
+xtst = sc.transform(xtst)
+
+import torch
+class Model(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.linear1 = torch.nn.Linear(11, 16)
+        self.act1 = torch.nn.ReLU()
+        self.linear2 = torch.nn.Linear(16, 8)
+        self.act2 = torch.nn.Sigmoid()
+        self.linear3 = torch.nn.Linear(8,1)
+        self.sigmoid = torch.nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.act1(x)
+        x = self.linear2(x)
+        x = self.act2(x)
+        x = self.linear3(x)
+        x = self.sigmoid(x)
+        return x
+		
+epochs = 1000
+model = Model()
+
+train_loss_values = []
+test_loss_values = []
+epoch_count = []
+
+loss_fn = torch.nn.BCELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+xtr1 = torch.from_numpy(xtr).to(torch.float32)
+xtst1 = torch.from_numpy(xtst).to(torch.float32)
+ytr1 = torch.from_numpy(ytr.reshape(-1,1)).to(torch.float32)
+ytst1 = torch.from_numpy(ytst.reshape(-1,1)).to(torch.float32)
+
+for epoch in range(epochs):
+    model.train()
+    ypr = model(xtr1)
+
+    loss = loss_fn(ypr, ytr1)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    
+    model.eval()
+    with torch.inference_mode():
+      test_pred = model(xtst1)
+      test_loss = loss_fn(test_pred, ytst1.type(torch.float))
+
+      if epoch % 100 == 0:
+            epoch_count.append(epoch)
+            train_loss_values.append(loss.detach().numpy())
+            test_loss_values.append(test_loss.detach().numpy())
+            print(f"Epoch: {epoch} | MAE Train Loss: {loss} | MAE Test Loss: {test_loss} ")
+			
+plt.plot(epoch_count, train_loss_values, label="Train loss")
+plt.plot(epoch_count, test_loss_values, label="Test loss")
+plt.title("Training and test loss curves")
+plt.ylabel("Loss")
+plt.xlabel("Epochs")
+plt.legend();
+
+with torch.inference_mode():
+      test_pred = model(xtst1)
+ans1 = (test_pred>0.5).float()
+loss_fn(ytst1,test_pred)
+confusion_matrix(ans1,ytst)
+print(classification_report(ans1,ytst))
+
+import tensorflow
+from keras.layers import Conv2D,MaxPooling2D,Dense,Flatten
+from keras.models import Sequential
+from sklearn.model_selection import cross_val_score
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from sklearn.model_selection import cross_val_score
+
+model = Sequential()
+
+model.add(Conv2D(32,(3,3),activation="relu",input_shape = (28,28,1)))
+model.add(MaxPooling2D((2,2)))
+
+model.add(Conv2D(64,(3,3),activation="relu"))
+model.add(MaxPooling2D((2,2)))
+
+model.add(Conv2D(64,(3,3),activation="relu"))
+
+model.add(Flatten())
+
+model.add(Dense(64,activation="relu"))
+
+model.add(Dense(10))
+
+or
+
+model.add(Dense(16, input_shape=(11,), activation='relu'))
+model.add(Dense(8, activation='sigmoid'))
+model.add(Dense(1, activation='sigmoid'))
+model.summary()
+
+model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+model.summary()
+
+model.fit(xtr,ytr,epochs=100)
+
+ans = (model.predict(xtst)>0.5).astype(int)
+confusion_matrix(ans,ytst)
+print(classification_report(ans,ytst))
+
+
+
+keras connection
+
+import numpy as np
+from tensorflow import keras
+from tensorflow.keras import layers
+import pickle
+
+(xtr,ytr),(xtst,ytst) = keras.datasets.mnist.load_data()
+
+xtr = xtr.astype('float32')/255
+xtst = xtst.astype('float32')/255
+xtr = np.expand_dims(xtr,-1)
+xtst = np.expand_dims(xtst,-1)
+
+ytr = keras.utils.to_categorical(ytr, 10)
+ytst = keras.utils.to_categorical(ytst, 10)
+
+model = keras.Sequential(
+    [
+     keras.Input(shape=(28,28,1),),
+     layers.Conv2D(32,(3,3),activation='relu'),
+     layers.MaxPooling2D((2,2)),
+     layers.Conv2D(64,(3,3),activation='relu'),
+     layers.MaxPooling2D((2,2)),
+     layers.Flatten(),
+     layers.Dense(10,activation='softmax')
+    ]
+)
+model.compile(loss='categorical_crossentropy',optimizer='adam',metrics=['accuracy'])
+model.fit(xtr,ytr,batch_size=128,epochs=20,validation_split=0.1)
+model.save('model.h5')
+
+connection py file(using cv2)
+
+from tensorflow import keras
+from flask import Flask,request,render_template
+import os
+import cv2
+import numpy as np
+
+mod = keras.models.load_model('model.h5')
+app = Flask(__name__)
+
+@app.route('/')
+def main():
+    return render_template('main.html')
+
+@app.route('/',methods=['POST'])
+def submit():
+    f = request.files["img"]
+    path = os.path.join("static/",f.filename)
+    f.save(path)
+    
+    img = cv2.imread(path)
+    img1 = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    img1 = cv2.resize(img1,(28,28))
+    img1 = img1.reshape(1,28,28,1)
+    ans = np.argmax(mod.predict(img1))
+    
+    return render_template('main.html',path=path,ans=ans)
+if __name__=='__main__':
+    app.run(host='localhost')
+	
+html 1(for one) 
+
+<html>
+<head>
+<style>
+    body{
+    text-align:center;
+    background-color: lightgreen;
+    }
+</style>
+<head>
+<body>
+    <h1> CNN mnist detector </h1>
+    <form action="{{url_for('submit')}}" method="post" enctype="multipart/form-data">
+    <label for="img">upload here</label>
+    <input name="img" type="file"/>
+    <input type="submit"/>
+    </form>
+    {% if path %}
+    <img src="{{path}}">
+    <h1> answer: {{ans}} </h1>
+    {% endif %}
+</body>
+</html>
+
+#flask 
+
+from flask import Flask, render_template, request, url_for
+import os
+
+import imageio
+from keras.models import load_model   
+from skimage.transform import resize
+
+app = Flask(__name__)
+
+model=load_model('model.h5')
+
+@app.route("/", methods=["GET"])
+def home():
+    return render_template("index.html")
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+
+    img = request.files["img"]
+    path = os.path.join("static/",img.filename)
+    img.save(path)
+    
+    image=imageio.imread(path,as_gray=True)
+    image = resize(image, (28, 28))
+    image = image.reshape(1, 28, 28, 1)
+    out=model.predict(image)
+    out=out.argmax(axis=1)
+    return render_template("new.html", data=out)
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+
+#html
+
+<html>
+  <body>
+
+    <h1>Prediction  Page</h1>
+    
+      <form method="post" action="/login" enctype="multipart/form-data">
+        
+        <input type="file" name="img" />
+        <input type="submit" value="Submit" />
+        
+  </body>
+</html>
+
+
+#html
+
+<html>
+  <body>
+    <h1>Output  Page</h1>
+
+        Predicted Output is : {{data}}                   
+    <!-- <img src="{{data[0]}}" alt="" /> -->   
+  </body>
+</html>
+
+
+#nn scratch
+
+from scipy.io import loadmat
+import numpy as np
+
+class nn:
+    def __init__(self,ip,op):
+        self.ip=ip
+        self.op=op
+        print(ip.shape,op.shape)
+        self.l1_size=100
+        self.w1=np.random.rand(self.l1_size,self.ip.shape[1]+1).T*0.3-0.15
+        self.w2=np.random.rand(self.op.shape[1],self.l1_size+1).T*0.3-0.15
+        print(self.w1.shape,self.w2.shape)
+        for i in range(100):
+            print(i)
+            self.train()
+    
+    def sig(self,x):
+        return 1/(1+np.exp(-x))
+    
+    def train(self):
+        #===front propogation===#
+        ip=np.append(np.ones((len(self.ip),1)),self.ip,axis=1)
+        l1=self.sig(ip@self.w1)
+        l1=np.append(np.ones((len(l1),1)),l1,axis=1)
+        pred=self.sig(l1@self.w2)
+        #===back propogation===#
+        #error at each layer
+        d3 = (pred - self.op)
+        d2 = (d3 @ self.w2.T * l1 * (1-l1))
+        d2 = d2[:,1:]
+        #altering weights
+        self.w2-= (l1.T @ d3)/len(ip)
+        self.w1-= (ip.T @ d2)/len(ip)
+        
+    def predict(self,ip):
+        ip=np.append(np.ones((len(ip),1)),ip,axis=1)
+        l1=self.sig(ip@self.w1)
+        l1=np.append(np.ones((len(l1),1)),l1,axis=1)
+        pred=self.sig(l1@self.w2)
+        return pred
+
+def accuracy(ytst,ypred):
+    print("mean error:",np.mean(np.abs((ypred-ytst).astype(bool))))
+    print("rmse:",np.sqrt(((ypred-ytst).astype(bool)**2).mean()))
+    
+data = loadmat('mnist-original.mat')
+
+x = data['data']
+x = x.transpose()
+x = x / 255
+y_lab = data['label']
+y_lab = y_lab.flatten()
+y=np.zeros((len(x),10))
+for i in range(len(x)):
+    y[i,int(y_lab[i])]=1
+xtr = x[:60000, :]
+ytr = y[:60000]
+xtst = x[60000:, :]
+ytst = y[60000:]
+ytst_lab = y_lab[60000:]
+net=nn(xtr,ytr)
+pred=net.predict(xtst)
+pred_lab = np.argmax(pred,axis=1)
+print("\n numpy neural network with one hidden layer")
+accuracy(ytst_lab,pred_lab)
+
+cnn 
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torchvision
+import torchvision.transforms as transforms
+
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.5,), (0.5,))
+])
+
+trainset = torchvision.datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True)
+testset = torchvision.datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
+testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False)
+
+
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.conv1 = nn.Conv2d(1, 32, 3, padding=1)
+        self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.fc1 = nn.Linear(64 * 7 * 7, 128)
+        self.fc2 = nn.Linear(128, 10)
+        self.dropout = nn.Dropout(p=0.5)
+
+    def forward(self, x):
+        x = self.pool(torch.relu(self.conv1(x)))
+        x = self.pool(torch.relu(self.conv2(x)))
+        x = x.view(-1, 64 * 7 * 7)
+        x = self.dropout(torch.relu(self.fc1(x)))
+        x = self.fc2(x)
+        return x
+		
+net = Net().to(device)
+
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(net.parameters(), lr=0.001)
+
+for epoch in range(10):
+    running_loss = 0.0
+    for i, data in enumerate(trainloader, 0):
+        inputs, labels = data[0].to(device), data[1].to(device)
+        optimizer.zero_grad()
+        outputs = net(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+        running_loss += loss.item()
+        if i % 100 == 99:
+            print('[%d, %5d] loss: %.3f' %
+                  (epoch + 1, i + 1, running_loss / 100))
+            running_loss = 0.0
+			
+
+correct = 0
+total = 0
+with torch.no_grad():
+    for data in testloader:
+        images, labels = data[0].to(device), data[1].to(device)
+        outputs = net(images)
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+		
+connection
+		
+@app.route('/model', methods=['GET', 'POST'])
+def model():
+    if request.method == 'POST':
+        genre = request.form['Pname']
+        rec = product.recommender(genre)
+        return render_template('output.html', recommendations=rec)
+    elif session.get("uname"):
+        return render_template('intro.html')
+
+  <ul style="font-size:25px;color:rgb(31, 23, 23);font-family: 'Poppins', sans-serif;">
+      {% for i in recommendations %}
+      <li>{{ i }}</li>
+      {% endfor %}
+  </ul>
+  
+  
+  <form action="{{url_for('model')}}" method="post">
+  <div class="input-group mb-3">
+    <input class="form-control w-25" id="Productname" type="text" class="form-control" name="Pname" placeholder="Product Name" aria-label="Recipient's username" aria-describedby="basic-addon2">
+    <div class="input-group-append">
+      <button class="btn btn-info" type="submit">Search</button>
+    </div>
+  </div>
+</form>
+
+#nn scratch
+
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_digits
+digit = load_digits()
+data = pd.DataFrame(digit.data)
+data.columns = digit.feature_names
+data.head()
+
+X=digit.data
+print(X.shape)
+y = digit.target
+y=np.expand_dims(y,-1)
+print(y.shape)
+
+num_hidden = 64
+learning_rate = 0.1
+num_iterations = 10000
+
+input_layer_weights = np.random.normal(size=(64, num_hidden))
+input_layer_bias = np.random.normal(size=(1, num_hidden))
+output_layer_weights = np.random.normal(size=(num_hidden, 1))
+output_layer_bias = np.random.normal(size=(1, 1))
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def sigmoid_derivative(x):
+    return sigmoid(x) * (1 - sigmoid(x))
+
+for i in range(num_iterations):
+    # Forward propagation
+    hidden_layer_activation = np.dot(X, input_layer_weights)
+    hidden_layer_activation += input_layer_bias
+    hidden_layer_output = sigmoid(hidden_layer_activation)
+    
+    output_layer_activation = np.dot(hidden_layer_output, output_layer_weights)
+    output_layer_activation += output_layer_bias
+    
+    predicted_output = sigmoid(output_layer_activation)
+    
+    # Backpropagation
+    error = y - predicted_output
+    d_predicted_output = error * sigmoid_derivative(predicted_output)
+    
+    error_hidden_layer = d_predicted_output.dot(output_layer_weights.T)
+    d_hidden_layer = error_hidden_layer * sigmoid_derivative(hidden_layer_output)
+    
+    # Update weights and biases
+    output_layer_weights += hidden_layer_output.T.dot(d_predicted_output) * learning_rate
+    output_layer_bias += np.sum(d_predicted_output, axis=0, keepdims=True) * learning_rate
+    input_layer_weights += X.T.dot(d_hidden_layer) * learning_rate
+    input_layer_bias += np.sum(d_hidden_layer, axis=0, keepdims=True) * learning_rate
+
+X_new = X
+hidden_layer_activation = np.dot(X_new, input_layer_weights)
+hidden_layer_activation += input_layer_bias
+
+hidden_layer_output = sigmoid(hidden_layer_activation)
+
+output_layer_activation = np.dot(hidden_layer_output, output_layer_weights)
+output_layer_activation += output_layer_bias
+
+predicted_output = sigmoid(output_layer_activation)
+print(predicted_output)
+predicted_class = (predicted_output >= 0.5).astype(int)
+print(predicted_class)
+
+sum(predicted_class==y)/len(y)
+
+#mlr
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+data = pd.read_csv("Datasets/mul_regression.csv")
+data = pd.concat([data,pd.get_dummies(data["State"],drop_first=True)],axis = 1).drop(["State"],axis=1)
+data = data[['R&D Spend', 'Administration', 'Marketing Spend', 'Florida', 'New York', 'Profit']]
+
+# VIF
+def VIF(df):
+    from statsmodels.stats.outliers_influence import variance_inflation_factor
+    
+    df["Intercept"] = 1
+    
+    vif = pd.DataFrame()
+    vif["features"] = df.columns
+    vif["vif"] = [variance_inflation_factor(df.values,i) for i in range(df.shape[1])]
+    
+    print(vif)
+VIF(data.iloc[:,:-1])
+
+x = data.iloc[:,:-1].values
+y = data.iloc[:,-1].values
+
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(x,y,test_size=0.2,random_state=69)
+
+from sklearn.preprocessing import StandardScaler
+scalar = StandardScaler()
+x_train = scalar.fit_transform(x_train)
+x_test = scalar.transform(x_test)
+
+print(model.coef_, model.intercept_)
+def GradientDescent(x,y,lr=0.01):
+    m = np.zeros(x.shape[1])
+    c = 0
+    
+    epochs = 1000
+    loss = [0]*epochs
+    for epoch in range(epochs):
+        # Predict 
+        y_pred = np.dot(x,m) + c
+        
+        # Loss
+        error = y_pred - y
+        
+        # Gradient
+        m_grad = np.dot(x.T,error) / len(y)
+        c_grad = np.sum(error) / len(y)
+        
+        # Update parameters
+        m -= lr*m_grad
+        c -= lr*c_grad
+        
+        loss[epoch] = np.sum((((x.dot(m) + c) - y) ** 2) / (len(y)))
+    
+    plt.plot(loss)
+    plt.title("Loss Graph")
+    plt.show()
+    return m, c
+w, b = GradientDescent(x_train, y_train)
+
+y_pred = np.dot(x_test,w) + b
+from sklearn.metrics import mean_absolute_error,mean_squared_error,r2_score,mean_absolute_percentage_error
+import math
+
+print("MAE : ",mean_absolute_error(y_test,y_pred))
+print("MSE : ",mean_squared_error(y_test,y_pred))
+print("RMSE : ",math.sqrt(mean_squared_error(y_test,y_pred)))
+print("R2 Score : ",r2_score(y_test,y_pred))
+print("Mean Percentage Error : ",mean_absolute_percentage_error(y_test,y_pred)*100)
+
+#lrs
+import numpy as np
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import pandas as pd
+data = load_breast_cancer()
+X_train, X_test, y_train, y_test = train_test_split(data.data, data.target, test_size=0.2, random_state=1)
+theta = np.zeros(X_train.shape[1])
+
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
+def cost_function(X, y, theta):
+    m = len(y)
+    h = sigmoid(np.dot(X, theta))
+    cost = (-1/m) * np.sum(y*np.log(h) + (1-y)*np.log(1-h))
+    return cost
+def gradient_descent(X, y, theta, alpha, num_iters):
+    m = len(y)
+    J_history = []
+    
+    for i in range(num_iters):
+        h = sigmoid(np.dot(X, theta))
+        theta = theta - (alpha/m) * np.dot(X.T, h-y)
+        J_history.append(cost_function(X, y, theta))
+    
+    return theta, J_history
+alpha = 0.01
+num_iters = 1000
+theta, J_history = gradient_descent(X_train, y_train, theta, alpha, num_iters)
+y_pred = np.round(sigmoid(np.dot(X_test, theta)))
+accuracy = accuracy_score(y_test, y_pred)
+
+kmeans
+def new_centroids(k):
+    centroids = []
+    for i in range(k):
+        centroid = df.apply(lambda x:float(x.sample()))
+        centroids.append(centroid)
+    return pd.concat(centroids,axis = 1)
+import numpy as  np
+def assign(df,centroids):
+    dist = centroids.apply(lambda x:np.sqrt((df-x)**2).sum(axis = 1))
+    return dist.idxmin(axis = 1)
+
+assign(df,new_centroids(3))
+def next_cent(df,labels):
+    return df.groupby(labels).apply(lambda x: np.mean(x)).T
+next_cent(df,assign(df,new_centroids(3)))
+from sklearn.decomposition import PCA
+from IPython.display import clear_output
+import matplotlib.pyplot as plt
+
+def plot_clusters(df,labels,centroids,iteration):
+    pca = PCA(n_components=2)
+    df1 = pca.fit_transform(df)
+    ct = pca.transform(centroids.T)
+    clear_output(wait=True)
+    
+    plt.scatter(df1[:,0],df1[:,1],c = labels)
+    plt.scatter(ct[:,0],ct[:,1])
+    plt.show()
+    
+maxi = 100
+ite = 1
+centroids = new_centroids(3)
+old = pd.DataFrame()
+
+while maxi>ite and not centroids.equals(old):
+    old = centroids
+    
+    labels = assign(df,centroids)
+    centroids = next_cent(df,labels)
+    plot_clusters(df,labels,centroids,ite)
+    ite += 1
+from sklearn.cluster import KMeans
+
+wcss = []
+for i in range(2,11):
+    km = KMeans(n_clusters=i,random_state=0)
+    km.fit(df)
+    wcss.append(km.inertia_)
+
+
+#flask graph
+import matplotlib.pyplot as plt
+import io
+from flask import Response,Flask
+import matplotlib.pyplot as plt
+from sklearn import tree
+import numpy as np
+
+import pickle
+
+model = pickle.load(open(r"C:\Users\akash\Desktop\Flask-Decision Tree\model.pkl",'rb'))
+app = Flask(__name__)
+
+@app.route('/plot')
+def plot():
+    fig, ax = plt.subplots()
+    fig = plt.figure(figsize=(35,30))
+    _ = tree.plot_tree(model,filled=True)
+
+    img = io.BytesIO()
+    fig.savefig(img)
+    img.seek(0)
+
+    return Response(img.getvalue(), mimetype='image/png')
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+
+
+
+

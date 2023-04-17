@@ -1,0 +1,192 @@
+#cnn
+
+
+
+# Import necessary libraries
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
+# Load the Fashion MNIST dataset
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.fashion_mnist.load_data()
+
+# Preprocess the data
+x_train = x_train.reshape(-1, 28, 28, 1).astype('float32') / 255.0
+x_test = x_test.reshape(-1, 28, 28, 1).astype('float32') / 255.0
+
+# Define the CNN model
+model = Sequential([
+    Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)),
+    MaxPooling2D((2, 2)),
+    Conv2D(64, (3, 3), activation='relu'),
+    MaxPooling2D((2, 2)),
+    Flatten(),
+    Dense(128, activation='relu'),
+    Dense(10, activation='softmax')
+])
+
+# Compile the model
+model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+# Train the model
+model.fit(x_train, y_train, batch_size=128, epochs=10, validation_split=0.1)
+
+# Evaluate the model
+loss, accuracy = model.evaluate(x_test, y_test, batch_size=128)
+print(f'Test loss: {loss:.4f}, Test accuracy: {accuracy:.4f}')
+
+
+
+
+
+
+
+#ann
+
+
+from keras.models import Sequential
+from keras.layers import Dense
+
+ann=Sequential()
+
+ann.add(Dense(units=8,activation='relu',input_dim=4))
+ann.add(Dense(units=8,activation='relu'))
+ann.add(Dense(units=1,activation='sigmoid'))
+
+ann.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accuracy'])
+
+ann.fit(x_train,y_train,epochs=200,batch_size=32)
+
+ypred=ann.predict(x_test)
+
+ypred=(ypred>0.5).astype(int)
+from sklearn.metrics import accuracy_score
+accuracy_score(ypred,y_test)
+
+
+
+
+
+
+
+# ann pytorch
+
+import torch 
+import torch.nn as nn 
+import torch.optim as optim
+
+
+
+
+
+class irisdetection(nn.Module):
+    def __init__(self):
+        super(irisdetection,self).__init__()
+        self.L=nn.Linear(4,10)
+    def forward(self,x):
+        x=self.L(x)
+        return x
+x=torch.tensor(x).to(torch.float32)
+y=torch.tensor(y,dtype=torch.long)
+model=irisdetection()
+loss_function=nn.CrossEntropyLoss()
+optimizer=optim.SGD(model.parameters(),lr=0.01)
+epochs=100
+for i in range(epochs):
+    output=model(x)
+    loss=loss_function(output,y)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    if i%10==0:
+        print('epoch : ',i,'loss : ',loss)
+
+model.eval()
+# Forward pass on test data
+test_outputs = model(x)
+# Get predicted labels
+_, predicted = torch.max(test_outputs.data, 1)
+# Compute accuracy
+total = y.size(0)
+print(predicted)
+correct = (predicted == y).sum().item()
+accuracy = correct / total
+print(f'Accuracy: {accuracy:.4f}')
+
+
+
+
+# ann scratch 
+
+
+import numpy as np
+# Input data - features
+X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+# Output data - labels
+y = np.array([[0], [1], [1], [0]])
+# Number of neurons in hidden layer
+num_hidden = 4
+# Learning rate
+learning_rate = 0.1
+# Number of training iterations
+num_iterations = 10000
+input_layer_weights = np.random.normal(size=(2, num_hidden))
+input_layer_bias = np.random.normal(size=(1, num_hidden))
+
+
+output_layer_weights = np.random.normal(size=(num_hidden, 1))
+output_layer_bias = np.random.normal(size=(1, 1))
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+# Derivative of sigmoid function
+def sigmoid_derivative(x):
+    return sigmoid(x) * (1 - sigmoid(x))
+for i in range(num_iterations):
+    # Forward propagation
+    hidden_layer_activation = np.dot(X, input_layer_weights)
+    hidden_layer_activation += input_layer_bias
+    hidden_layer_output = sigmoid(hidden_layer_activation)
+    
+    output_layer_activation = np.dot(hidden_layer_output, output_layer_weights)
+    output_layer_activation += output_layer_bias
+    
+    predicted_output = sigmoid(output_layer_activation)
+    
+    # Backpropagation
+    error = y - predicted_output
+    d_predicted_output = error * sigmoid_derivative(predicted_output)
+    
+    error_hidden_layer = d_predicted_output.dot(output_layer_weights.T)
+    d_hidden_layer = error_hidden_layer * sigmoid_derivative(hidden_layer_output)
+    
+    # Update weights and biases
+    output_layer_weights += hidden_layer_output.T.dot(d_predicted_output) * learning_rate
+    
+    output_layer_bias += np.sum(d_predicted_output, axis=0, keepdims=True) * learning_rate
+    
+    input_layer_weights += X.T.dot(d_hidden_layer) * learning_rate
+    
+    input_layer_bias += np.sum(d_hidden_layer, axis=0, keepdims=True) * learning_rate
+
+X_new = np.array([[1,1]])
+
+# Predictions
+hidden_layer_activation = np.dot(X_new, input_layer_weights)
+hidden_layer_activation += input_layer_bias
+
+hidden_layer_output = sigmoid(hidden_layer_activation)
+
+output_layer_activation = np.dot(hidden_layer_output, output_layer_weights)
+output_layer_activation += output_layer_bias
+
+predicted_output = sigmoid(output_layer_activation)
+
+# Print predictions
+print(predicted_output)
+predicted_class = (predicted_output >= 0.5).astype(int)
+predicted_class
